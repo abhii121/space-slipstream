@@ -39,18 +39,27 @@ import { TimePipe } from './time.pipe';
       </div>
 
       <div class="controls-help">
-        <div><kbd>←</kbd><kbd>→</kbd> steer</div>
-        <div><kbd>↑</kbd> thrust</div>
-        <div><kbd>↓</kbd> retro brake</div>
-        <div><kbd>Space</kbd> boost</div>
-        <div><kbd>Esc</kbd> pause</div>
-        <div class="tip">Skim planets to charge boost. Gamepad supported.</div>
+        @if (touch) {
+          <div><kbd>◀</kbd><kbd>▶</kbd> steer</div>
+          <div><kbd>▲</kbd> thrust</div>
+          <div><kbd>▼</kbd> brake</div>
+          <div><kbd>⚡</kbd> boost</div>
+          <div class="tip">Skim planets to charge boost. Turn your phone sideways for a wider view.</div>
+        } @else {
+          <div><kbd>←</kbd><kbd>→</kbd> steer</div>
+          <div><kbd>↑</kbd> thrust</div>
+          <div><kbd>↓</kbd> retro brake</div>
+          <div><kbd>Space</kbd> boost</div>
+          <div><kbd>Esc</kbd> pause</div>
+          <div class="tip">Skim planets to charge boost. Gamepad supported.</div>
+        }
       </div>
     </div>
   `,
 })
 export class MenuComponent {
   protected readonly state = inject(GameStateService);
+  protected readonly touch = matchMedia('(pointer: coarse)').matches;
   protected readonly lapOptions = [1, 3, 5];
   protected readonly best = computed(
     () => this.state.bestTimes()[`${this.state.track().name}-${this.state.laps()}`] ?? null,

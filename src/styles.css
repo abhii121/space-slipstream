@@ -7,6 +7,11 @@
   --line: rgba(34, 230, 255, 0.35);
   --text: #e8f6ff;
   --muted: #8aa3c7;
+  /* Phone safe areas (notch, home bar) */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
 }
 * { box-sizing: border-box; }
 html, body {
@@ -49,7 +54,7 @@ kbd {
 /* ---------- overlays ---------- */
 .overlay {
   position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 28px; padding: 24px; animation: fadeIn 0.5s ease both;
+  gap: 28px; padding: 24px; animation: fadeIn 0.5s ease both; overflow-y: auto;
 }
 .overlay.dim { background: rgba(2, 3, 10, 0.55); }
 .kicker { font-size: 13px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--muted); text-align: center; }
@@ -132,13 +137,13 @@ kbd {
   color: var(--gold); text-shadow: 0 0 18px rgba(255, 194, 61, 0.8); animation: toastAnim 1.6s ease-out both;
 }
 
-/* touch controls */
+/* touch controls (desktop-sized defaults; phones get .touch-ui below) */
 .touch { bottom: 20px; display: flex; gap: 12px; pointer-events: auto; }
 .touch.left { left: 16px; bottom: 150px; }
 .touch.right { right: 16px; align-items: flex-end; }
 .touch button {
   width: 70px; height: 70px; border-radius: 50%; border: 1px solid var(--line); background: rgba(10, 16, 40, 0.5);
-  color: var(--text); font-size: 24px; touch-action: none;
+  color: var(--text); font-size: 24px; touch-action: none; -webkit-tap-highlight-color: transparent;
 }
 .touch button:active { background: rgba(34, 230, 255, 0.3); }
 .touch .thrust { width: 90px; height: 90px; border-color: var(--cyan); }
@@ -150,6 +155,61 @@ kbd {
   .pos { font-size: 32px; }
   .hud-tr { min-width: 140px; }
   .t-main { font-size: 18px; }
+}
+
+/* ---------- phone / tablet HUD ----------
+   Info lives at the top, thumbs own the bottom corners.
+   Netlify draws its badge over the bottom-right ~64px, so the right-hand buttons sit above it. */
+.hud.touch-ui { --badge-clear: 72px; }
+.touch-ui .hud-tl { top: calc(12px + var(--safe-t)); left: calc(12px + var(--safe-l)); padding: 6px 12px; }
+.touch-ui .pos { font-size: 28px; }
+.touch-ui .pos sup, .touch-ui .pos small { font-size: 13px; }
+.touch-ui .lap { font-size: 11px; margin-top: 2px; }
+.touch-ui .hud-tr { top: calc(12px + var(--safe-t)); right: calc(12px + var(--safe-r)); padding: 6px 12px; min-width: 0; }
+.touch-ui .t-main { font-size: 18px; }
+.touch-ui .t-sub { font-size: 11px; }
+.touch-ui .pause-btn { top: calc(12px + var(--safe-t)); width: 40px; height: 40px; }
+.touch-ui .hud-bl {
+  top: calc(84px + var(--safe-t)); bottom: auto; left: calc(12px + var(--safe-l));
+  width: 132px; padding: 6px 10px;
+}
+.touch-ui .speed { font-size: 20px; }
+.touch-ui .speed small { font-size: 10px; margin-left: 4px; }
+.touch-ui .bar { margin-top: 4px; height: 4px; }
+.touch-ui .boost-label { font-size: 9px; margin-top: 6px; letter-spacing: 0.2em; }
+.touch-ui .boost-bar { height: 7px; }
+.touch-ui .toast { top: 30%; font-size: 22px; }
+.touch-ui .countdown { font-size: 110px; }
+
+.touch-ui .touch button { width: 72px; height: 72px; font-size: 22px; }
+.touch-ui .touch.left { left: calc(14px + var(--safe-l)); bottom: calc(22px + var(--safe-b)); gap: 14px; }
+/* Right thumb: thrust in the corner, brake to its left, boost above it */
+.touch-ui .touch.right {
+  display: block; right: calc(14px + var(--safe-r)); bottom: calc(var(--badge-clear) + var(--safe-b));
+  width: 172px; height: 172px;
+}
+.touch-ui .touch.right button { position: absolute; }
+.touch-ui .touch .thrust { right: 0; bottom: 0; width: 96px; height: 96px; font-size: 28px; }
+.touch-ui .touch .brake { right: 108px; bottom: 8px; width: 64px; height: 64px; }
+.touch-ui .touch .boost { right: 16px; bottom: 108px; width: 64px; height: 64px; }
+
+/* Landscape phones: plenty of width, little height -> put the right-hand buttons in a row */
+@media (orientation: landscape) and (max-height: 560px) {
+  .touch-ui .touch.right { width: 252px; height: 96px; }
+  .touch-ui .touch .brake { right: 184px; bottom: 16px; }
+  .touch-ui .touch .boost { right: 108px; bottom: 16px; }
+  .touch-ui .touch.left { bottom: calc(16px + var(--safe-b)); }
+}
+
+/* Short screens (landscape phones): compact menu so it fits without scrolling */
+@media (max-height: 560px) {
+  .overlay { gap: 12px; padding: 12px; justify-content: flex-start; }
+  .kicker { display: none; }
+  .logo { font-size: 34px; }
+  .menu-panel, .modal { padding: 14px 18px; gap: 8px; }
+  .btn.big { padding: 12px 20px; }
+  .btn { padding: 9px 16px; }
+  .controls-help { display: none; }
 }
 
 /* ---------- animations ---------- */

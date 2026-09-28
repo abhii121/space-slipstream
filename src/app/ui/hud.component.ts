@@ -9,7 +9,7 @@ const ORDINAL = ['', 'st', 'nd', 'rd', 'th'];
   selector: 'app-hud',
   imports: [TimePipe],
   template: `
-    <div class="hud">
+    <div class="hud" [class.touch-ui]="touch">
       <div class="panel hud-tl">
         <div class="pos">{{ state.position() }}<sup>{{ suffix() }}</sup><small>/{{ state.racers() }}</small></div>
         <div class="lap">LAP {{ state.lap() }}/{{ state.laps() }}</div>
@@ -43,13 +43,13 @@ const ORDINAL = ['', 'st', 'nd', 'rd', 'th'];
 
       @if (touch) {
         <div class="touch left">
-          <button (pointerdown)="set('left', true)" (pointerup)="set('left', false)" (pointerleave)="set('left', false)">◀</button>
-          <button (pointerdown)="set('right', true)" (pointerup)="set('right', false)" (pointerleave)="set('right', false)">▶</button>
+          <button aria-label="Steer left" (pointerdown)="set('left', true)" (pointerup)="set('left', false)" (pointerleave)="set('left', false)" (pointercancel)="set('left', false)">◀</button>
+          <button aria-label="Steer right" (pointerdown)="set('right', true)" (pointerup)="set('right', false)" (pointerleave)="set('right', false)" (pointercancel)="set('right', false)">▶</button>
         </div>
         <div class="touch right">
-          <button (pointerdown)="set('brake', true)" (pointerup)="set('brake', false)" (pointerleave)="set('brake', false)">▼</button>
-          <button class="boost" (pointerdown)="set('boost', true)" (pointerup)="set('boost', false)" (pointerleave)="set('boost', false)">⚡</button>
-          <button class="thrust" (pointerdown)="set('thrust', true)" (pointerup)="set('thrust', false)" (pointerleave)="set('thrust', false)">▲</button>
+          <button class="brake" aria-label="Brake" (pointerdown)="set('brake', true)" (pointerup)="set('brake', false)" (pointerleave)="set('brake', false)" (pointercancel)="set('brake', false)">▼</button>
+          <button class="boost" aria-label="Boost" (pointerdown)="set('boost', true)" (pointerup)="set('boost', false)" (pointerleave)="set('boost', false)" (pointercancel)="set('boost', false)">⚡</button>
+          <button class="thrust" aria-label="Thrust" (pointerdown)="set('thrust', true)" (pointerup)="set('thrust', false)" (pointerleave)="set('thrust', false)" (pointercancel)="set('thrust', false)">▲</button>
         </div>
       }
     </div>

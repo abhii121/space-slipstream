@@ -15,6 +15,8 @@ const MAX_SPEED = 1000;
 const MAX_BOOST_SPEED = 1550;
 const LATERAL_GRIP = 1.1; // how quickly sideways drift is damped (arcade feel)
 const DRAG = 0.22;
+// Hard cap on planet pull. Keep it below the weakest ship's thrust (THRUST * lowest skill = ~640),
+// or a ship resting on a planet's surface can't fly away.
 const MAX_GRAVITY = 520;
 const SLINGSHOT_ZONE = 260; // px above a planet surface that charges boost
 
@@ -304,7 +306,7 @@ export class Engine {
       const d = Math.hypot(dx, dy);
       if (d > p.influence) continue;
       const fade = 1 - d / p.influence;
-      const g = Math.min(MAX_GRAVITY, p.gm / (d * d)) * fade * fade * (3 - 2 * fade) * 1.4;
+      const g = Math.min(MAX_GRAVITY, (p.gm / (d * d)) * fade * fade * (3 - 2 * fade) * 1.4);
       ax += (dx / d) * g;
       ay += (dy / d) * g;
       if (d - p.r < SLINGSHOT_ZONE && speed > 420) {
@@ -667,7 +669,7 @@ export class Engine {
     // Camera: follow with look-ahead, zoom out with speed, smooth everything.
     const target = menu ? this.leader() : this.player();
     const tsp = Math.hypot(target.vx, target.vy);
-    const base = clamp(Math.min(w, h) / 820, 0.55, 1.1);
+    const base = clamp(Math.min(w, h) / 820, 0.45, 1.1); // phones zoom out further to see the track
     const zoomTarget = base * (menu ? 0.62 : clamp(1 - (tsp / MAX_BOOST_SPEED) * 0.38, 0.6, 1));
     const k = 1 - Math.exp(-dt * 4.5);
     this.cam.x = lerp(this.cam.x, lerp(target.px, target.x, alpha) + target.vx * 0.32, k);
@@ -730,7 +732,7 @@ export class Engine {
     if (menu) return;
 
     // Minimap (top-right)
-    const mw = Math.min(190, w * 0.3);
+    const mw = Math.min(190, w * 0.3, h * 0.3);
     const mh = mw * 0.8;
     const mx = w - mw - 16;
     const my = 108;
