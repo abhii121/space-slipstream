@@ -1,6 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
 import { GameStateService } from '../game/game-state.service';
-import { TRACK } from '../game/track';
 import { TimePipe } from './time.pipe';
 
 @Component({
@@ -16,7 +15,11 @@ import { TimePipe } from './time.pipe';
       <div class="panel menu-panel">
         <div class="row">
           <span class="label">Track</span>
-          <span class="value">{{ trackName }}</span>
+          <div class="track-pick">
+            <button class="arrow" aria-label="Previous track" (click)="state.cycleTrack(-1)">&#9664;</button>
+            <span class="value">{{ state.track().name }}</span>
+            <button class="arrow" aria-label="Next track" (click)="state.cycleTrack(1)">&#9654;</button>
+          </div>
         </div>
         <div class="row">
           <span class="label">Laps</span>
@@ -49,6 +52,7 @@ import { TimePipe } from './time.pipe';
 export class MenuComponent {
   protected readonly state = inject(GameStateService);
   protected readonly lapOptions = [1, 3, 5];
-  protected readonly trackName = TRACK.name;
-  protected readonly best = computed(() => this.state.bestTimes()[`${TRACK.name}-${this.state.laps()}`] ?? null);
+  protected readonly best = computed(
+    () => this.state.bestTimes()[`${this.state.track().name}-${this.state.laps()}`] ?? null,
+  );
 }

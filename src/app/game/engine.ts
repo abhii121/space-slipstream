@@ -2,7 +2,7 @@ import { isDevMode } from '@angular/core';
 import { Application, Container, Graphics, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { GameStateService } from './game-state.service';
 import { Controls, InputService } from './input.service';
-import { mulberry32, Planet, TRACK } from './track';
+import { mulberry32, Planet, TrackDef, TRACKS } from './track';
 
 // ---------- Tuning ----------
 const STEP = 1 / 60; // fixed physics timestep
@@ -103,7 +103,8 @@ export class Engine {
   private slingToastCooldown = 0;
   private cam = { x: 0, y: 0, zoom: 0.7 };
   private destroyed = false;
-  private readonly bounds = this.computeBounds();
+  private track: TrackDef = TRACKS[0];
+  private bounds = this.computeBounds();
 
   constructor(
     private readonly state: GameStateService,
@@ -135,12 +136,7 @@ export class Engine {
     this.world.addChild(this.trackLayer, this.asteroidLayer, this.trailLayer, this.fxLayer, this.shipLayer);
 
     this.buildNebula();
-    this.buildTrack();
-    this.buildAsteroids();
-    this.resetShips(true);
-    const lead = this.ships[0];
-    this.cam.x = lead.x;
-    this.cam.y = lead.y;
+    this.loadTrack(this.track);
 
     if (isDevMode()) (window as any).__engine = this; // handy for debugging in the console
     this.app.ticker.add((t) => this.frame(Math.min(t.deltaMS / 1000, 0.1)));
@@ -157,6 +153,29 @@ export class Engine {
   }
 
   // ================= Commands from UI =================
+
+  /** Swap the whole course (gates, planets, asteroids). Only called from the menu. */
+  setTrack(track: TrackDef): void {
+    if (track === this.track) return;
+    this.track = track;
+    if (this.ships.length) this.loadTrack(track); // before init() finishes, init() loads it
+  }
+
+  private loadTrack(track: TrackDef): void {
+    this.track = track;
+    for (const layer of [this.trackLayer, this.asteroidLayer]) {
+      for (const child of layer.removeChildren()) child.destroy({ children: true });
+    }
+    this.gateViews = [];
+    this.asteroids = [];
+    this.bounds = this.computeBounds();
+    this.buildTrack();
+    this.buildAsteroids();
+    this.resetShips(true);
+    const lead = this.ships[0];
+    this.cam.x = lead.x;
+    this.cam.y = lead.y;
+  }
 
   startRace(laps: number): void {
     this.totalLaps = laps;
@@ -279,7 +298,7 @@ export class Engine {
     }
 
     // Gravity wells + slingshot boost charging.
-    for (const p of TRACK.planets) {
+    for (const p of this.track.planets) {
       const dx = p.x - s.x;
       const dy = p.y - s.y;
       const d = Math.hypot(dx, dy);
@@ -351,7 +370,7 @@ export class Engine {
   }
 
   private ai(s: Ship): Controls {
-    const gates = TRACK.gates;
+    const gates = this.track.gates;
     const g = gates[s.nextGate];
     const g2 = gates[(s.nextGate + 1) % gates.length];
     const speed = Math.hypot(s.vx, s.vy);
@@ -411,7 +430,7 @@ export class Engine {
       avx += sx * w;
       avy += sy * w;
     };
-    for (const p of TRACK.planets) avoid(p.x, p.y, p.r);
+    for (const p of this.track.planets) avoid(p.x, p.y, p.r);
     for (const a of this.asteroids) avoid(a.x, a.y, a.r);
 
     if (s.recover > 0) {
@@ -420,7 +439,7 @@ export class Engine {
       let best = Infinity;
       let ox = 0;
       let oy = 0;
-      for (const o of [...TRACK.planets, ...this.asteroids]) {
+      for (const o of [...this.track.planets, ...this.asteroids]) {
         const dd = Math.hypot(o.x - s.x, o.y - s.y) - o.r;
         if (dd < best) {
           best = dd;
@@ -464,7 +483,7 @@ export class Engine {
 
   private collide(): void {
     for (const s of this.ships) {
-      for (const p of TRACK.planets) this.bounce(s, p.x, p.y, p.r, null, 0.45);
+      for (const p of this.track.planets) this.bounce(s, p.x, p.y, p.r, null, 0.45);
       for (const a of this.asteroids) this.bounce(s, a.x, a.y, a.r * 0.9, a, 0.55);
     }
     // Ship vs ship
@@ -535,7 +554,7 @@ export class Engine {
 
   private checkGate(s: Ship, phase: string): void {
     if (s.finished) return;
-    const gates = TRACK.gates;
+    const gates = this.track.gates;
     const g = gates[s.nextGate];
     const fx = Math.cos(g.angle);
     const fy = Math.sin(g.angle);
@@ -578,7 +597,7 @@ export class Engine {
       s.finishTime = this.raceClock;
       if (s.isPlayer && phase === 'racing') {
         this.state.finishTime.set(this.raceClock);
-        this.state.newRecord.set(this.state.saveBest(`${TRACK.name}-${this.totalLaps}`, this.raceClock));
+        this.state.newRecord.set(this.state.saveBest(`${this.track.name}-${this.totalLaps}`, this.raceClock));
         this.state.phase.set('finished');
         this.state.audio.fanfare();
       }
@@ -689,7 +708,7 @@ export class Engine {
 
   private renderGates(dt: number): void {
     const p = this.player();
-    const n = TRACK.gates.length;
+    const n = this.track.gates.length;
     const racing = this.state.phase() !== 'menu';
     this.gateViews.forEach((v, i) => {
       const isNext = racing && i === p.nextGate;
@@ -720,14 +739,14 @@ export class Engine {
     const sc = Math.min((mw - 20) / (b.maxX - b.minX), (mh - 20) / (b.maxY - b.minY));
     const ox = mx + mw / 2 - ((b.minX + b.maxX) / 2) * sc;
     const oy = my + mh / 2 - ((b.minY + b.maxY) / 2) * sc;
-    const gates = TRACK.gates;
+    const gates = this.track.gates;
     g.moveTo(gates[0].x * sc + ox, gates[0].y * sc + oy);
     for (let i = 1; i <= gates.length; i++) {
       const q = gates[i % gates.length];
       g.lineTo(q.x * sc + ox, q.y * sc + oy);
     }
     g.stroke({ width: 1.5, color: 0xffffff, alpha: 0.25 });
-    for (const pl of TRACK.planets) g.circle(pl.x * sc + ox, pl.y * sc + oy, Math.max(2.5, pl.r * sc)).fill({ color: pl.color, alpha: 0.8 });
+    for (const pl of this.track.planets) g.circle(pl.x * sc + ox, pl.y * sc + oy, Math.max(2.5, pl.r * sc)).fill({ color: pl.color, alpha: 0.8 });
     const next = gates[this.player().nextGate];
     g.circle(next.x * sc + ox, next.y * sc + oy, 4).stroke({ width: 1.5, color: 0x22e6ff });
     for (const s of this.ships) {
@@ -767,7 +786,7 @@ export class Engine {
     st.speed.set(Math.round(Math.hypot(p.vx, p.vy) * 0.36));
     st.boost.set(p.boost);
     if (phase !== 'racing') return;
-    const n = TRACK.gates.length;
+    const n = this.track.gates.length;
     st.lap.set(clamp(Math.floor(Math.max(0, p.passed - 1) / n) + 1, 1, this.totalLaps));
     st.raceTime.set(this.raceClock);
     st.lapTime.set(this.raceClock - p.lapStart);
@@ -788,7 +807,7 @@ export class Engine {
   }
 
   private progress(s: Ship): number {
-    const gates = TRACK.gates;
+    const gates = this.track.gates;
     const g = gates[s.nextGate];
     const prev = gates[(s.nextGate - 1 + gates.length) % gates.length];
     const seg = Math.hypot(g.x - prev.x, g.y - prev.y);
@@ -807,7 +826,7 @@ export class Engine {
   // ================= Builders =================
 
   private resetShips(demo: boolean): void {
-    const g0 = TRACK.gates[0];
+    const g0 = this.track.gates[0];
     const fx = Math.cos(g0.angle);
     const fy = Math.sin(g0.angle);
     const grid = [[-120, -70], [-120, 70], [-240, -70], [-240, 70]];
@@ -860,7 +879,7 @@ export class Engine {
   }
 
   private buildTrack(): void {
-    const gates = TRACK.gates;
+    const gates = this.track.gates;
     const n = gates.length;
 
     // Faint dotted racing line
@@ -878,7 +897,7 @@ export class Engine {
     this.trackLayer.addChild(line);
 
     // Planets
-    for (const p of TRACK.planets) this.trackLayer.addChild(this.makePlanet(p));
+    for (const p of this.track.planets) this.trackLayer.addChild(this.makePlanet(p));
 
     // Gates
     gates.forEach((g, i) => {
@@ -959,7 +978,7 @@ export class Engine {
   }
 
   private buildAsteroids(): void {
-    for (const d of TRACK.asteroids) {
+    for (const d of this.track.asteroids) {
       const rand = mulberry32(d.seed);
       const g = new Graphics();
       const pts: number[] = [];
@@ -994,8 +1013,8 @@ export class Engine {
   }
 
   private computeBounds() {
-    const xs = [...TRACK.gates.map((g) => g.x), ...TRACK.planets.map((p) => p.x)];
-    const ys = [...TRACK.gates.map((g) => g.y), ...TRACK.planets.map((p) => p.y)];
+    const xs = [...this.track.gates.map((g) => g.x), ...this.track.planets.map((p) => p.x)];
+    const ys = [...this.track.gates.map((g) => g.y), ...this.track.planets.map((p) => p.y)];
     const pad = 400;
     return { minX: Math.min(...xs) - pad, maxX: Math.max(...xs) + pad, minY: Math.min(...ys) - pad, maxY: Math.max(...ys) + pad };
   }

@@ -27,13 +27,26 @@ Touch buttons appear automatically on phones and tablets.
 
 **Tip:** fly close to a planet's glowing ring to charge boost (slingshot). Passing gates also adds a little.
 
+## Tracks
+
+Pick a track with the arrows on the main menu. Best times are saved per track and lap count.
+
+| Track | Style |
+| --- | --- |
+| Orion Loop | Smooth oval around a ringed gas giant. Good for learning slingshots. |
+| Serpent Run | A long straight into a hairpin around a red dwarf, then a slalom through a dense asteroid field. |
+
+To add a track, call `buildTrack()` in `track.ts` with its gate points, planets, an asteroid seed and
+asteroid density, then add it to `TRACKS`. Keep planets well off the racing line: a ship pinned to a
+planet's surface needs more thrust than the gravity there, or the AI can get stuck.
+
 ## Project structure
 
 ```
 src/app/
   game/
     engine.ts             PixiJS renderer + physics + AI (plain TS, no Angular)
-    track.ts              Gates, planets, asteroids (edit to design new tracks)
+    track.ts              Track list: gates, planets, asteroids for each course
     game-state.service.ts Signals bridge between the engine and the UI
     input.service.ts      Keyboard, gamepad (with rumble) and touch input
     audio.ts              Procedural Web Audio: engine hum, boost, beeps, impacts
@@ -62,7 +75,6 @@ In dev mode the engine is available in the browser console as `window.__engine` 
 
 ## Ideas for next steps
 
-- More tracks (add another `TrackDef` in `track.ts` plus a track picker in the menu)
 - Ghost replay of your best lap (record `x, y, angle` each step)
 - Ship upgrades or a garage screen
 - Real sound effects and music with Howler.js

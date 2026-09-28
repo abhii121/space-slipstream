@@ -1,6 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 import { AudioEngine } from './audio';
 import type { Engine } from './engine';
+import { TRACKS } from './track';
 
 export type Phase = 'menu' | 'countdown' | 'racing' | 'paused' | 'finished';
 
@@ -33,6 +34,8 @@ export class GameStateService {
   readonly phase = signal<Phase>('menu');
   readonly countdown = signal(3);
   readonly laps = signal(3);
+  readonly trackIndex = signal(0);
+  readonly track = computed(() => TRACKS[this.trackIndex()]);
   readonly muted = signal(false);
 
   // HUD
@@ -59,6 +62,14 @@ export class GameStateService {
 
   attach(engine: Engine): void {
     this.engine = engine;
+    engine.setTrack(this.track());
+  }
+
+  /** Step through the track list (wraps around). Menu only. */
+  cycleTrack(step: number): void {
+    const n = TRACKS.length;
+    this.trackIndex.update((i) => (i + step + n) % n);
+    this.engine?.setTrack(this.track());
   }
 
   showToast(text: string): void {
